@@ -35,7 +35,41 @@ const forgetPassword = async (req, res) => {
   });
 };
 
+const resetPassword = async (req, res) => {
+  try {
+    const { password, confirmPassword } = req.body;
+    const { resetToken } = req.params;
 
+    const decoded = jwt.verify(resetToken, process.env.JWT_RESET_KEY);
+
+    if (!password || !confirmPassword) {
+      return res
+        .status(400)
+        .json({ code: "Invalid-Feilds", message: "Please fill all feilds" });
+    }
+    if (password !== confirmPassword) {
+      return res.status(400).json({
+        code: "Invalid-Input",
+        message: "Password and confirm password does not matched",
+      });
+    }
+
+    const user = await User.findById(decoded._id);
+    if (!user) {
+      return res.status(400).json({ error: "User not found" });
+    }
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    user.password = hashedPassword;
+    await user.save();
+
+    res.json({ message: "Password reset successfully" });
+  } catch (error) {
+    return res
+      .status(204)
+      .json({ success: true, message: "This is already used " });
+  }
+};
 
 const profileImage = async (req, res) => {
   try {
@@ -48,4 +82,4 @@ const profileImage = async (req, res) => {
   }
 };
 
-module.exports = { forgetPassword, profileImage };
+module.exports = { forgetPassword, resetPassword, profileImage };
